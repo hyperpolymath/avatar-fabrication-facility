@@ -1,0 +1,43 @@
+// SPDX-License-Identifier: MIT OR AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2024-2025 hyperpolymath
+
+= Avatar Fabrication Facility - Roadmap
+:toc: left
+:toclevels: 2
+:icons: font
+
+== Current Status
+
+Repository project specification - will be uploaded shortly.
+
+== Phases
+
+=== Phase 0: Initialisation
+[cols="1,2,1"]
+|===
+| Task | Description | Status
+
+| Repository setup
+| RSR template infrastructure
+| Done
+
+| Project specification
+| Define scope, architecture, and objectives
+| Pending
+|===
+
+=== Phase 1: Foundation
+_To be defined after specification upload._
+
+=== Phase 2: Core Development
+_To be defined after specification upload._
+
+=== Phase 3: Integration
+_To be defined after specification upload._
+
+=== Phase 4: Release
+_To be defined after specification upload._
+
+== Contributing
+
+See link:CONTRIBUTING.md[CONTRIBUTING.md] for how to participate in this project.
