@@ -1,1 +1,41 @@
+// SPDX-License-Identifier: MIT OR AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2024-2025 hyperpolymath
 
+= Avatar Fabrication Facility
+:toc: left
+:toclevels: 3
+:icons: font
+
+== Overview
+
+Repository project specification - will be uploaded shortly.
+
+== Status
+
+[cols="1,3"]
+|===
+| Phase | Initialisation
+| State | Awaiting specification upload
+|===
+
+== Quick Start
+
+[source,bash]
+----
+# Clone the repository
+git clone https://github.com/hyperpolymath/avatar-fabrication-facility.git
+cd avatar-fabrication-facility
+
+# View available commands
+just
+----
+
+== Documentation
+
+* link:ROADMAP.adoc[Roadmap]
+* link:CONTRIBUTING.md[Contributing Guide]
+* link:docs/CITATIONS.adoc[How to Cite]
+
+== License
+
+Dual-licensed under link:LICENSE.txt[MIT OR AGPL-3.0-or-later].
