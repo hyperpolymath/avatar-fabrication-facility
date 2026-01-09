@@ -40,4 +40,4 @@ _To be defined after specification upload._
 
 == Contributing
 
-See link:CONTRIBUTING.md[CONTRIBUTING.md] for how to participate in this project.
+See link:CONTRIBUTING.adoc[CONTRIBUTING.adoc] for how to participate in this project.

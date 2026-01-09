@@ -35,7 +35,7 @@ just
 == Documentation
 
 * link:ROADMAP.adoc[Roadmap]
-* link:CONTRIBUTING.md[Contributing Guide]
+* link:CONTRIBUTING.adoc[Contributing Guide]
 * link:docs/CITATIONS.adoc[How to Cite]
 
 == License

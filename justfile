@@ -12,8 +12,8 @@ set shell := ["bash", "-uc"]
 set dotenv-load := true
 set positional-arguments := true
 
-# Project metadata - CUSTOMIZE THESE
-project := "RSR-template-repo"
+# Project metadata
+project := "avatar-fabrication-facility"
 version := "0.1.0"
 tier := "infrastructure"  # 1 | 2 | infrastructure
 
@@ -52,24 +52,60 @@ info:
 
 # Build the project (debug mode)
 build *args:
-    @echo "Building {{project}}..."
-    # TODO: Add build command for your language
-    # Rust: cargo build {{args}}
-    # ReScript: npm run build
-    # Elixir: mix compile
+    #!/usr/bin/env bash
+    echo "Building {{project}}..."
+    if [ -f "Cargo.toml" ]; then
+        cargo build {{args}}
+    elif [ -f "rescript.json" ] || [ -f "bsconfig.json" ]; then
+        deno task build {{args}} 2>/dev/null || npx rescript build {{args}}
+    elif [ -f "gleam.toml" ]; then
+        gleam build {{args}}
+    elif [ -f "mix.exs" ]; then
+        mix compile {{args}}
+    elif [ -f "deno.json" ] || [ -f "deno.jsonc" ]; then
+        deno task build {{args}} 2>/dev/null || deno compile {{args}}
+    else
+        echo "No recognized build system found (Cargo.toml, rescript.json, gleam.toml, mix.exs, deno.json)"
+        exit 0
+    fi
 
 # Build in release mode with optimizations
 build-release *args:
-    @echo "Building {{project}} (release)..."
-    # TODO: Add release build command
-    # Rust: cargo build --release {{args}}
+    #!/usr/bin/env bash
+    echo "Building {{project}} (release)..."
+    if [ -f "Cargo.toml" ]; then
+        cargo build --release {{args}}
+    elif [ -f "rescript.json" ] || [ -f "bsconfig.json" ]; then
+        deno task build {{args}} 2>/dev/null || npx rescript build {{args}}
+    elif [ -f "gleam.toml" ]; then
+        gleam build --target erlang {{args}} 2>/dev/null || gleam build {{args}}
+    elif [ -f "mix.exs" ]; then
+        MIX_ENV=prod mix compile {{args}}
+    elif [ -f "deno.json" ] || [ -f "deno.jsonc" ]; then
+        deno task build {{args}} 2>/dev/null || deno compile --output dist/{{project}} {{args}}
+    else
+        echo "No recognized build system found"
+        exit 0
+    fi
 
 # Build and watch for changes
 build-watch:
-    @echo "Watching for changes..."
-    # TODO: Add watch command
-    # Rust: cargo watch -x build
-    # ReScript: npm run watch
+    #!/usr/bin/env bash
+    echo "Watching for changes..."
+    if [ -f "Cargo.toml" ]; then
+        cargo watch -x build 2>/dev/null || (echo "Install cargo-watch: cargo install cargo-watch" && exit 1)
+    elif [ -f "rescript.json" ] || [ -f "bsconfig.json" ]; then
+        deno task watch 2>/dev/null || npx rescript build -w
+    elif [ -f "gleam.toml" ]; then
+        watchexec -e gleam -- gleam build 2>/dev/null || (echo "Install watchexec for watch mode" && exit 1)
+    elif [ -f "mix.exs" ]; then
+        mix compile --force && iex -S mix
+    elif [ -f "deno.json" ] || [ -f "deno.jsonc" ]; then
+        deno task dev 2>/dev/null || deno run --watch main.ts 2>/dev/null || echo "Add 'dev' task to deno.json"
+    else
+        echo "No recognized build system found"
+        exit 0
+    fi
 
 # Clean build artifacts [reversible: rebuild with `just build`]
 clean:
@@ -86,22 +122,63 @@ clean-all: clean
 
 # Run all tests
 test *args:
-    @echo "Running tests..."
-    # TODO: Add test command
-    # Rust: cargo test {{args}}
-    # ReScript: npm test
-    # Elixir: mix test
+    #!/usr/bin/env bash
+    echo "Running tests..."
+    if [ -f "Cargo.toml" ]; then
+        cargo test {{args}}
+    elif [ -f "rescript.json" ] || [ -f "bsconfig.json" ]; then
+        deno task test {{args}} 2>/dev/null || deno test {{args}}
+    elif [ -f "gleam.toml" ]; then
+        gleam test {{args}}
+    elif [ -f "mix.exs" ]; then
+        mix test {{args}}
+    elif [ -f "deno.json" ] || [ -f "deno.jsonc" ]; then
+        deno task test {{args}} 2>/dev/null || deno test {{args}}
+    elif ls *.jl 2>/dev/null || [ -d "src" ] && ls src/*.jl 2>/dev/null; then
+        julia --project=. -e 'using Pkg; Pkg.test()' {{args}}
+    else
+        echo "No recognized test system found"
+        exit 0
+    fi
 
 # Run tests with verbose output
 test-verbose:
-    @echo "Running tests (verbose)..."
-    # TODO: Add verbose test
+    #!/usr/bin/env bash
+    echo "Running tests (verbose)..."
+    if [ -f "Cargo.toml" ]; then
+        cargo test -- --nocapture
+    elif [ -f "rescript.json" ] || [ -f "bsconfig.json" ]; then
+        deno task test 2>/dev/null || deno test --allow-all
+    elif [ -f "gleam.toml" ]; then
+        gleam test
+    elif [ -f "mix.exs" ]; then
+        mix test --trace
+    elif [ -f "deno.json" ] || [ -f "deno.jsonc" ]; then
+        deno task test 2>/dev/null || deno test --allow-all
+    else
+        echo "No recognized test system found"
+        exit 0
+    fi
 
 # Run tests and generate coverage report
 test-coverage:
-    @echo "Running tests with coverage..."
-    # TODO: Add coverage command
-    # Rust: cargo llvm-cov
+    #!/usr/bin/env bash
+    echo "Running tests with coverage..."
+    if [ -f "Cargo.toml" ]; then
+        cargo llvm-cov 2>/dev/null || cargo tarpaulin 2>/dev/null || (echo "Install coverage tool: cargo install cargo-llvm-cov" && exit 1)
+    elif [ -f "rescript.json" ] || [ -f "bsconfig.json" ]; then
+        deno task test:coverage 2>/dev/null || deno test --coverage=coverage
+    elif [ -f "gleam.toml" ]; then
+        echo "Gleam coverage: run tests and check erlang coverage reports"
+        gleam test
+    elif [ -f "mix.exs" ]; then
+        mix test --cover
+    elif [ -f "deno.json" ] || [ -f "deno.jsonc" ]; then
+        deno task test:coverage 2>/dev/null || deno test --coverage=coverage
+    else
+        echo "No recognized test system found"
+        exit 0
+    fi
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # LINT & FORMAT
@@ -109,23 +186,98 @@ test-coverage:
 
 # Format all source files [reversible: git checkout]
 fmt:
-    @echo "Formatting..."
-    # TODO: Add format command
-    # Rust: cargo fmt
-    # ReScript: npm run format
-    # Elixir: mix format
+    #!/usr/bin/env bash
+    echo "Formatting..."
+    FORMATTED=false
+    if [ -f "Cargo.toml" ]; then
+        cargo fmt && FORMATTED=true
+    fi
+    if [ -f "rescript.json" ] || [ -f "bsconfig.json" ]; then
+        deno task format 2>/dev/null || npx rescript format -all 2>/dev/null && FORMATTED=true
+    fi
+    if [ -f "gleam.toml" ]; then
+        gleam format . && FORMATTED=true
+    fi
+    if [ -f "mix.exs" ]; then
+        mix format && FORMATTED=true
+    fi
+    if [ -f "deno.json" ] || [ -f "deno.jsonc" ]; then
+        deno fmt && FORMATTED=true
+    fi
+    # Format shell scripts
+    if command -v shfmt >/dev/null; then
+        find . -name "*.sh" -not -path "./.git/*" -exec shfmt -w {} \; 2>/dev/null && FORMATTED=true
+    fi
+    if [ "$FORMATTED" = false ]; then
+        echo "No recognized format system found"
+    fi
 
 # Check formatting without changes
 fmt-check:
-    @echo "Checking format..."
-    # TODO: Add format check
-    # Rust: cargo fmt --check
+    #!/usr/bin/env bash
+    echo "Checking format..."
+    CHECKED=false
+    FAILED=false
+    if [ -f "Cargo.toml" ]; then
+        cargo fmt --check || FAILED=true
+        CHECKED=true
+    fi
+    if [ -f "rescript.json" ] || [ -f "bsconfig.json" ]; then
+        deno task format:check 2>/dev/null || CHECKED=true
+    fi
+    if [ -f "gleam.toml" ]; then
+        gleam format --check . || FAILED=true
+        CHECKED=true
+    fi
+    if [ -f "mix.exs" ]; then
+        mix format --check-formatted || FAILED=true
+        CHECKED=true
+    fi
+    if [ -f "deno.json" ] || [ -f "deno.jsonc" ]; then
+        deno fmt --check || FAILED=true
+        CHECKED=true
+    fi
+    if [ "$CHECKED" = false ]; then
+        echo "No recognized format system found"
+    elif [ "$FAILED" = true ]; then
+        exit 1
+    fi
 
 # Run linter
 lint:
-    @echo "Linting..."
-    # TODO: Add lint command
-    # Rust: cargo clippy -- -D warnings
+    #!/usr/bin/env bash
+    echo "Linting..."
+    LINTED=false
+    FAILED=false
+    if [ -f "Cargo.toml" ]; then
+        cargo clippy -- -D warnings || FAILED=true
+        LINTED=true
+    fi
+    if [ -f "rescript.json" ] || [ -f "bsconfig.json" ]; then
+        deno task lint 2>/dev/null || deno lint 2>/dev/null
+        LINTED=true
+    fi
+    if [ -f "gleam.toml" ]; then
+        gleam check || FAILED=true
+        LINTED=true
+    fi
+    if [ -f "mix.exs" ]; then
+        mix credo --strict 2>/dev/null || mix compile --warnings-as-errors || FAILED=true
+        LINTED=true
+    fi
+    if [ -f "deno.json" ] || [ -f "deno.jsonc" ]; then
+        deno lint || FAILED=true
+        LINTED=true
+    fi
+    # Lint shell scripts
+    if command -v shellcheck >/dev/null; then
+        find . -name "*.sh" -not -path "./.git/*" -exec shellcheck {} \; 2>/dev/null
+    fi
+    if [ "$LINTED" = false ]; then
+        echo "No recognized lint system found"
+    elif [ "$FAILED" = true ]; then
+        exit 1
+    fi
 
 # Run all quality checks
 quality: fmt-check lint test
@@ -141,21 +293,64 @@ fix: fmt
 
 # Run the application
 run *args:
-    @echo "Running {{project}}..."
-    # TODO: Add run command
-    # Rust: cargo run {{args}}
+    #!/usr/bin/env bash
+    echo "Running {{project}}..."
+    if [ -f "Cargo.toml" ]; then
+        cargo run {{args}}
+    elif [ -f "rescript.json" ] || [ -f "bsconfig.json" ]; then
+        deno task start {{args}} 2>/dev/null || node lib/es6/src/Main.bs.js {{args}} 2>/dev/null || deno run --allow-all lib/es6/src/Main.bs.js {{args}}
+    elif [ -f "gleam.toml" ]; then
+        gleam run {{args}}
+    elif [ -f "mix.exs" ]; then
+        mix run {{args}}
+    elif [ -f "deno.json" ] || [ -f "deno.jsonc" ]; then
+        deno task start {{args}} 2>/dev/null || deno run --allow-all main.ts {{args}}
+    elif [ -f "main.jl" ]; then
+        julia --project=. main.jl {{args}}
+    else
+        echo "No recognized run system found"
+        exit 0
+    fi
 
 # Run in development mode with hot reload
 dev:
-    @echo "Starting dev mode..."
-    # TODO: Add dev command
+    #!/usr/bin/env bash
+    echo "Starting dev mode..."
+    if [ -f "Cargo.toml" ]; then
+        cargo watch -x run 2>/dev/null || cargo run
+    elif [ -f "rescript.json" ] || [ -f "bsconfig.json" ]; then
+        deno task dev 2>/dev/null || npx rescript build -w
+    elif [ -f "gleam.toml" ]; then
+        watchexec -e gleam -- gleam run 2>/dev/null || gleam run
+    elif [ -f "mix.exs" ]; then
+        iex -S mix
+    elif [ -f "deno.json" ] || [ -f "deno.jsonc" ]; then
+        deno task dev 2>/dev/null || deno run --watch --allow-all main.ts
+    else
+        echo "No recognized dev system found"
+        exit 0
+    fi
 
 # Run REPL/interactive mode
 repl:
-    @echo "Starting REPL..."
-    # TODO: Add REPL command
-    # Elixir: iex -S mix
-    # Guile: guix shell guile -- guile
+    #!/usr/bin/env bash
+    echo "Starting REPL..."
+    if [ -f "Cargo.toml" ]; then
+        evcxr 2>/dev/null || (echo "Install evcxr: cargo install evcxr_repl" && exit 1)
+    elif [ -f "rescript.json" ] || [ -f "bsconfig.json" ]; then
+        deno repl 2>/dev/null || node
+    elif [ -f "gleam.toml" ]; then
+        gleam shell 2>/dev/null || erl
+    elif [ -f "mix.exs" ]; then
+        iex -S mix
+    elif [ -f "deno.json" ] || [ -f "deno.jsonc" ]; then
+        deno repl
+    elif [ -f "Project.toml" ]; then
+        julia --project=.
+    else
+        # Default to Guile Scheme REPL
+        guix shell guile -- guile 2>/dev/null || guile 2>/dev/null || echo "No REPL available"
+    fi
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # DEPENDENCIES
@@ -163,17 +358,72 @@ repl:
 
 # Install all dependencies
 deps:
-    @echo "Installing dependencies..."
-    # TODO: Add deps command
-    # Rust: (automatic with cargo)
-    # ReScript: npm install
-    # Elixir: mix deps.get
+    #!/usr/bin/env bash
+    echo "Installing dependencies..."
+    INSTALLED=false
+    if [ -f "Cargo.toml" ]; then
+        cargo fetch && INSTALLED=true
+    fi
+    if [ -f "rescript.json" ] || [ -f "bsconfig.json" ]; then
+        if [ -f "deno.json" ] || [ -f "deno.jsonc" ]; then
+            deno cache --reload deps.ts 2>/dev/null || deno task deps 2>/dev/null
+        else
+            npm install 2>/dev/null
+        fi
+        INSTALLED=true
+    fi
+    if [ -f "gleam.toml" ]; then
+        gleam deps download && INSTALLED=true
+    fi
+    if [ -f "mix.exs" ]; then
+        mix deps.get && INSTALLED=true
+    fi
+    if [ -f "deno.json" ] || [ -f "deno.jsonc" ]; then
+        deno cache --reload deps.ts 2>/dev/null || deno task deps 2>/dev/null || true
+        INSTALLED=true
+    fi
+    if [ -f "Project.toml" ]; then
+        julia --project=. -e 'using Pkg; Pkg.instantiate()' && INSTALLED=true
+    fi
+    if [ "$INSTALLED" = false ]; then
+        echo "No recognized dependency system found (Cargo.toml, gleam.toml, mix.exs, deno.json, Project.toml)"
+    fi
 
 # Audit dependencies for vulnerabilities
 deps-audit:
-    @echo "Auditing dependencies..."
-    # TODO: Add audit command
-    # Rust: cargo audit
+    #!/usr/bin/env bash
+    echo "Auditing dependencies..."
+    AUDITED=false
+    if [ -f "Cargo.toml" ]; then
+        cargo audit 2>/dev/null || (echo "Install cargo-audit: cargo install cargo-audit" && exit 1)
+        AUDITED=true
+    fi
+    if [ -f "gleam.toml" ]; then
+        echo "Gleam: checking hex.pm packages..."
+        gleam deps list
+        AUDITED=true
+    fi
+    if [ -f "mix.exs" ]; then
+        mix hex.audit 2>/dev/null || mix deps
+        AUDITED=true
+    fi
+    if [ -f "deno.json" ] || [ -f "deno.jsonc" ]; then
+        echo "Deno: dependencies are URL-based with integrity checks"
+        deno info 2>/dev/null || true
+        AUDITED=true
+    fi
+    if [ -f "Project.toml" ]; then
+        julia --project=. -e 'using Pkg; Pkg.status()' 2>/dev/null
+        AUDITED=true
+    fi
+    # General security scanning
+    if command -v trivy >/dev/null; then
+        echo "=== Trivy scan ==="
+        trivy fs --severity HIGH,CRITICAL . 2>/dev/null || true
+    fi
+    if [ "$AUDITED" = false ]; then
+        echo "No recognized audit system found"
+    fi
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # DOCUMENTATION
